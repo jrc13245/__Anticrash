@@ -3,17 +3,22 @@ local PREFIX = "|cffff0000!!|r|cffaa00ffAnticrash|r"
 Anticrash_SavedData = Anticrash_SavedData or {}
 
 local isLogout = false
+local count = 0
+
+local function CrawlFrame(frame)
+  if frame.UnregisterAllEvents then
+    frame:UnregisterAllEvents()
+    count = count + 1
+  end
+  local children = {frame:GetChildren()}
+  for i = 1, table.getn(children) do
+    CrawlFrame(children[i])
+  end
+end
 
 local function DoShutdown()
-  local count = 0
-  local frame = EnumerateFrames()
-  while frame do
-    if frame.UnregisterAllEvents then
-      frame:UnregisterAllEvents()
-      count = count + 1
-    end
-    frame = EnumerateFrames(frame)
-  end
+  count = 0
+  CrawlFrame(UIParent)
   Anticrash_SavedData.lastCount = count
 end
 
@@ -22,11 +27,9 @@ f:RegisterEvent("PLAYER_LOGOUT")
 f:RegisterEvent("PLAYER_LEAVING_WORLD")
 f:RegisterEvent("VARIABLES_LOADED")
 f:SetScript("OnEvent", function()
-  if event == "PLAYER_LOGOUT" then
-    -- mark as logout so PLAYER_LEAVING_WORLD knows to shutdown
+  if event == "PLAYER_LEAVING_WORLD" then
     isLogout = true
-  elseif event == "PLAYER_LEAVING_WORLD" then
-    -- only shutdown on real logout, not zone changes
+  elseif event == "PLAYER_LOGOUT" then
     if isLogout then
       DoShutdown()
     end
